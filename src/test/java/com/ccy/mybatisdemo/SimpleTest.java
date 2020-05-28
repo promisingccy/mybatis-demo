@@ -36,8 +36,10 @@ public class SimpleTest {
     @Test
     public void insert(){
         User user = new User();
-        user.setName("吕布");
-        user.setAge(26);
+        user.setName("向南");
+        user.setAge(27);
+        user.setEmail("test@qq.com");
+        user.setRemark("备注111");//非表字段
         user.setManagerId(1087982257332887553L);
         user.setCreateTime(LocalDateTime.now());
         int rows = userMapper.insert(user);
