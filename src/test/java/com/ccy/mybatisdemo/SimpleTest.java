@@ -1,9 +1,12 @@
 package com.ccy.mybatisdemo;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.service.additional.query.impl.LambdaQueryChainWrapper;
 import com.ccy.mybatisdemo.dao.UserMapper;
 import com.ccy.mybatisdemo.entity.User;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,29 +36,150 @@ public class SimpleTest {
 
     /**
      * ************** 条件构造器查询 ***************
-     *  queryWrapper.like("name", "雨") //%雨%
-     *                 .likeRight("name", "雨") //雨%
-     *                 .likeLeft("name", "雨") //%雨
-     *                 .or() // or
-     *                 .orderByDesc("age") //降序
-     *                 .between("age", 20, 40)
-     *                 .lt("age", 40) //<
-     *                 .le("age", 20) //<=
-     *                 .eq("age", 20) //=
-     *                 .ge("age", 20) //>=
-     *
+     * 官网 https://mp.baomidou.com/guide/wrapper.html#abstractwrapper
      * */
+
+    @Test
+    public void selectLambdaChain(){
+        //name LIKE ? AND age >= ?
+        List<User> list = new LambdaQueryChainWrapper<>(userMapper)
+                .like(User::getName, "雨")
+                .ge(User::getAge, 20).list();
+        list.forEach(System.out::println);
+    }
+
+    @Test
+    public void selectLambda(){
+        //************** lambdaQuery 不硬编码sql字段  **************
+        //三种构造方法 ctrl + alt + v 自动补全
+//        LambdaQueryWrapper<User> lambda = new QueryWrapper<User>().lambda();
+//        LambdaQueryWrapper<Object> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        LambdaQueryWrapper<User> lambdaQuery = Wrappers.lambdaQuery();
+
+        //**SQL条件**
+        // name like '王%' and (age<40 or email is not null)
+        lambdaQuery.likeRight(User::getName, "王").and(lq->lq.lt(User::getAge, 40).or().isNotNull(User::getEmail));
+
+        List<User> userList = userMapper.selectList(lambdaQuery);
+        userList.forEach(System.out::println);
+    }
+
+    @Test
+    public void selectByWrapperObjs(){
+        //************** selectObjs 只返回select的第一列的时候使用 **************
+        QueryWrapper<User> queryWrapper = new QueryWrapper<User>();
+        queryWrapper.select("age", "id", "name").likeRight("name", "向")
+                .and(wq->wq.lt("age", 40).or().isNotNull("email"));
+
+        List<Object> userList = userMapper.selectObjs(queryWrapper);
+        userList.forEach(System.out::println);
+    }
+
+    @Test
+    public void selectByWrapperMaps(){
+        //************** selectMaps 返回不是list而是map **************
+        QueryWrapper<User> queryWrapper = new QueryWrapper<User>();
+
+        /**
+         * 按照直属上级分组，查询每组的平均年龄、最大年龄、最小年龄。
+         * 并且只取年龄总和小于500的组。
+            select avg(age) avg_age,min(age) min_age,max(age) max_age
+            from user
+            group by manager_id
+            having sum(age) <500
+        */
+        queryWrapper.select("avg(age) avg_age", "min(age) min_age", "max(age) max_age")
+                .groupBy("manager_id")
+                .having("sum(age)<{0}", 500);
+
+        List<Map<String, Object>> userList = userMapper.selectMaps(queryWrapper);
+        userList.forEach(System.out::println);
+    }
+
+    @Test
+    public void selectByWrapperAllEq(){
+        //************** allEq 使用map作为条件参数 **************
+        QueryWrapper<User> queryWrapper = new QueryWrapper<User>();
+        //WHERE name = ? AND age = ?
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", "张飞");
+        params.put("age", null);
+        //queryWrapper.allEq(params, false);//false标识map中为null的属性将被忽略掉 //WHERE name = ?
+
+        //WHERE age IS NULL 排除掉了map中不为name的条件
+        queryWrapper.allEq((k,v)->!k.equals("name"), params);
+
+        List<User> userList = userMapper.selectList(queryWrapper);
+        userList.forEach(System.out::println);
+    }
+
+    @Test
+    public void selectByWrapperEntity(){
+        //************** 实体作为参数的构造器 **************
+        //默认是 name=? AND age=?
+        User whereUser = new User();
+        whereUser.setName("向南");
+        whereUser.setAge(28);
+
+        QueryWrapper<User> queryWrapper = new QueryWrapper<User>(whereUser);
+
+        List<User> userList = userMapper.selectList(queryWrapper);
+        userList.forEach(System.out::println);
+    }
+
     @Test
     public void selectByWrapper(){
-        //名字中包含雨并且年龄小于40  name like '%雨%' and age<40
         //第一种wrapper构造方法
         QueryWrapper<User> queryWrapper = new QueryWrapper<User>();
         //第二种wrapper构造方法
 //        QueryWrapper<User> query = Wrappers.<User>query();
 
-        //WHERE name LIKE ? AND age < ?
-        queryWrapper.like("name", "雨") //%雨%
-                .lt("age", 40); //<
+        //**SQL条件**
+//        String name = "王";
+//        String email = "";
+//        queryWrapper.like(StringUtils.isNotEmpty(name), "name", name).like(StringUtils.isNotEmpty(email), "email", email);
+
+
+        //**SQL字段**
+        // 反选指定字段
+        // select(User.class, info->info.getColumn().equals("create_time")&&!info.getColumn().equals("manager_id"))
+//        queryWrapper.select(User.class, info->!info.getColumn().equals("create_time")&&!info.getColumn().equals("manager_id"))
+//                .like("name", "雨") //%雨%
+//                .lt("age", 40); //<
+
+        //**SQL条件**
+        // name LIKE ? AND age < ?
+//        queryWrapper.like("name", "雨") //%雨%
+//                .lt("age", 40); //<
+
+        //**SQL条件**
+        // date_format(create_time,'%Y-%m-%d')='2019-02-14' and manager_id in (select id from user where name like '王%')
+//        queryWrapper.apply("date_format(create_time,'%Y-%m-%d')={0}", "2019-02-14")  //{0} 防止sql注入
+//                .inSql("manager_id", "select id from user where name like '王%'");
+
+        //**SQL条件**
+        // name like '王%' and (age<40 or email is not null)
+//        queryWrapper.likeRight("name", "王")
+//                .and(wq->wq.lt("age", 40).or().isNotNull("email"));
+
+        //**SQL条件**
+        // name like '向%' or (age<40 and age>20 and email is not null)
+//        queryWrapper.likeRight("name", "向")
+//                .or(wq->wq.lt("age", 40).gt("age", 20).isNotNull("email"));
+
+        //**SQL条件**
+        // (age<40 or email is not null) and name like '王%'
+//        queryWrapper.nested(wq->wq.lt("age", 40).isNotNull("email")).likeRight("name", "王");
+
+
+        //**SQL条件**
+        // age in (30、31、34、35)
+//        queryWrapper.in("age", 30, 31, 34, 35);
+
+        //**SQL条件**
+        // age in (30、31、34、35) limit 1
+//        queryWrapper.in("age", Arrays.asList(30, 31, 34, 35)).last("limit 1");
+
         List<User> userList = userMapper.selectList(queryWrapper);
         userList.forEach(System.out::println);
     }
