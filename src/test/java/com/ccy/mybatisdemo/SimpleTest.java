@@ -2,7 +2,9 @@ package com.ccy.mybatisdemo;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.additional.query.impl.LambdaQueryChainWrapper;
 import com.ccy.mybatisdemo.dao.UserMapper;
 import com.ccy.mybatisdemo.entity.User;
@@ -34,11 +36,54 @@ public class SimpleTest {
     @Resource
     private UserMapper userMapper;
 
+    //分页查询
+    @Test
+    public void selectByPage(){
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+
+        //第三个参数false则不查询总数
+        Page<User> page = new Page<>(1, 2);
+//        Page<User> page = new Page<>(1, 2, false);
+
+/*      //第一种分页 返回 实体
+        IPage<User> iPage = userMapper.selectPage(page, queryWrapper);
+        System.out.println("总记录数：" + iPage.getTotal());
+        System.out.println("总页数" + iPage.getPages());
+        List<User> userList = iPage.getRecords();
+        */
+
+/*
+        //第二种分页  返回 Map
+        IPage<Map<String, Object>> iPage = userMapper.selectMapsPage(page, queryWrapper);
+        System.out.println("总记录数：" + iPage.getTotal());
+        System.out.println("总页数" + iPage.getPages());
+        List<Map<String, Object>> userList = iPage.getRecords();
+*/
+
+        //自定义sql语句分页 selectUserPage
+        IPage<User> iPage = userMapper.selectUserPage(page, queryWrapper);
+        System.out.println("总记录数：" + iPage.getTotal());
+        System.out.println("总页数" + iPage.getPages());
+        List<User> userList = iPage.getRecords();
+
+        userList.forEach(System.out::println);
+    }
+
+
+    //自定义查询方法 selectAll
+    @Test
+    public void selectByMySql(){
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.likeRight(User::getName, "王").lt(User::getAge, 40).isNotNull(User::getEmail);
+        List<User> list = userMapper.selectAll(queryWrapper);
+        list.forEach(System.out::println);
+    }
+
+
     /**
      * ************** 条件构造器查询 ***************
      * 官网 https://mp.baomidou.com/guide/wrapper.html#abstractwrapper
      * */
-
     @Test
     public void selectLambdaChain(){
         //name LIKE ? AND age >= ?

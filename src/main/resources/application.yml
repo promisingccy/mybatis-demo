@@ -13,3 +13,7 @@ logging:
     com.ccy.mybatisdemo.dao: trace
   pattern:
     console: '%p%m%n'
+
+############### mybatis-plus配置 ###############
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
