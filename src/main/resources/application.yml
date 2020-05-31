@@ -17,3 +17,13 @@ logging:
 ############### mybatis-plus配置 ###############
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
+  #xml中resultType值的前缀设置 不用写全路径了
+  type-aliases-package: com.ccy.mybatisdemo.entity
+#  global-config:
+#    db-config:
+#      #数据表前缀
+#      table-prefix: prs_
+#      id-type: uuid  #全局设置主键id的类型
+    #进阶配置
+  #  configuration:
+  #    map-underscore-to-camel-case: true
