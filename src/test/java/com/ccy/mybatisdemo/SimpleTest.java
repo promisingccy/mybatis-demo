@@ -2,10 +2,13 @@ package com.ccy.mybatisdemo;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.additional.query.impl.LambdaQueryChainWrapper;
+import com.baomidou.mybatisplus.extension.service.additional.update.impl.LambdaUpdateChainWrapper;
 import com.ccy.mybatisdemo.dao.UserMapper;
 import com.ccy.mybatisdemo.entity.User;
 import org.apache.commons.lang3.StringUtils;
@@ -289,5 +292,74 @@ public class SimpleTest {
         System.out.println("影响记录数:" + rows);
     }
 
+    /**
+     * ************** 更新 ***************
+     * */
+    @Test
+    public void updateById(){
+        User user = new User();
+        user.setId(1265944286311006209L);
+        user.setAge(26);
+        int rows = userMapper.updateById(user);
+        System.out.println("影响记录数:" + rows);
+    }
+
+    @Test
+    public void updateByWrapper(){
+        UpdateWrapper<User> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("name", "向南").eq("age", 35).set("email", "xiangnan@qq.com");
+
+        int rows = userMapper.update(null, updateWrapper);
+        System.out.println("影响记录数:" + rows);
+    }
+
+    @Test
+    public void updateByLambdaWrapper(){
+/*
+        //lambda调用
+        LambdaUpdateWrapper<User> lambdaUpdateWrapper = new LambdaUpdateWrapper<>();
+        lambdaUpdateWrapper.eq(User::getName, "李艺伟").set(User::getAge, 31).set(User::getEmail, "lywww@baomidou.com");
+        int rows = userMapper.update(null, lambdaUpdateWrapper);
+        System.out.println("影响记录数:" + rows);*/
+
+        //lambda链式调用
+        boolean update = new LambdaUpdateChainWrapper<User>(userMapper)
+                        .eq(User::getName, "李艺伟")
+                        .set(User::getAge, 32)
+                        .set(User::getEmail, "lywss@baomidou.com")
+                        .update();
+        System.out.println(update);
+    }
+
+    /**
+     * ************** 删除 ***************
+     * */
+    @Test
+    public void deleteById(){
+        int res = userMapper.deleteById(1265928508681490434L);
+        System.out.println(res);
+    }
+
+    @Test
+    public void deleteByExt(){
+        //通过map获取操作对象
+/*        Map<String, Object> map = new HashMap<>();
+        map.put("name", "向南");
+        map.put("age", 28);
+
+        int res = userMapper.deleteByMap(map);
+        System.out.println(res);*/
+
+        //通过list获取id操作对象
+        /*int num = userMapper.deleteBatchIds(Arrays.asList(1265251143211081730L, 1265923237842366465L,
+                1265923834167431170L));
+        System.out.println("删除条数：" + num);*/
+
+        //通过lambda操作对象
+        LambdaQueryWrapper<User> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(User::getName, "李艺伟").eq(User::getAge, 32);
+        int rows = userMapper.delete(lambdaQueryWrapper);
+        System.out.println("影响记录数:" + rows);
+    }
 
 }
